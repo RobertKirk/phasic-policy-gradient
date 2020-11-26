@@ -192,8 +192,8 @@ def aux_train(*, model, segs, opt, mbsize, name2coef):
         for name in name2loss.keys():
             unscaled_loss = name2loss[name]
             scaled_loss = unscaled_loss * name2coef.get(name, 1)
-            logger.logkv_mean("unscaled/" + name, unscaled_loss)
-            logger.logkv_mean("scaled/" + name, scaled_loss)
+            # logger.logkv_mean("unscaled/" + name, unscaled_loss)
+            # logger.logkv_mean("scaled/" + name, scaled_loss)
             loss += scaled_loss
         opt.zero_grad()
         loss.backward()
@@ -218,6 +218,7 @@ def learn(
     *,
     model,
     venv,
+    eval_venv, 
     ppo_hps,
     aux_lr,
     aux_mbsize,
@@ -245,6 +246,7 @@ def learn(
         # Policy phase
         ppo_state = ppo.learn(
             venv=venv,
+            eval_venv=eval_venv,
             model=model,
             learn_state=ppo_state,
             callbacks=[
@@ -255,7 +257,7 @@ def learn(
             comm=comm,
             **ppo_hps,
         )
-
+        
         if ppo_state["curr_interact_count"] >= interacts_total:
             break
 
@@ -264,7 +266,7 @@ def learn(
             compute_presleep_outputs(model=model, segs=segs, mbsize=aux_mbsize)
             # Auxiliary phase
             for i in range(n_aux_epochs):
-                logger.log(f"Aux epoch {i}")
+                # logger.log(f"Aux epoch {i}")
                 aux_train(
                     model=model,
                     segs=segs,
@@ -272,5 +274,5 @@ def learn(
                     mbsize=aux_mbsize,
                     name2coef=name2coef,
                 )
-                logger.dumpkvs()
+                # logger.dumpkvs()
             segs.clear()

@@ -53,6 +53,7 @@ class LogSaveHelper:
         self.log_callbacks = log_callbacks
         self.log_new_eps = log_new_eps
         self.roller_stats = {}
+        self.eval_roller_stats = {}
 
     def __call__(self):
         self.total_interact_count += self.ic_per_step
@@ -67,7 +68,7 @@ class LogSaveHelper:
 
     def gather_roller_stats(self, roller):
         self.roller_stats = {
-            "EpRewMean": self._nanmean([] if roller is None else roller.recent_eprets),
+            "train/mean_episode_reward": self._nanmean([] if roller is None else roller.recent_eprets),
             "EpLenMean": self._nanmean([] if roller is None else roller.recent_eplens),
         }
         if roller is not None and self.log_new_eps:
@@ -85,6 +86,26 @@ class LogSaveHelper:
                 }
             )
 
+    def gather_eval_roller_stats(self, roller):
+        self.eval_roller_stats = {
+            "test/mean_episode_reward": self._nanmean([] if roller is None else roller.recent_eprets),
+            "EpLenMeanTest": self._nanmean([] if roller is None else roller.recent_eplens),
+        }
+        if roller is not None and self.log_new_eps:
+            assert roller.has_non_rolling_eps, "roller needs keep_non_rolling"
+            ret_n, ret_mean, ret_std = self._nanmoments(roller.non_rolling_eprets)
+            _len_n, len_mean, len_std = self._nanmoments(roller.non_rolling_eplens)
+            roller.clear_non_rolling_episode_buf()
+            self.eval_roller_stats.update(
+                {
+                    "NewEpNumTest": ret_n,
+                    "NewEpRewMeanTest": ret_mean,
+                    "NewEpRewStdTest": ret_std,
+                    "NewEpLenMeanTest": len_mean,
+                    "NewEpLenStdTest": len_std,
+                }
+            )
+
     def log(self):
         if self.log_callbacks is not None:
             for callback in self.log_callbacks:
@@ -93,7 +114,10 @@ class LogSaveHelper:
         for k, v in self.roller_stats.items():
             logger.logkv(k, v)
 
-        logger.logkv("Misc/InteractCount", self.total_interact_count)
+        for k, v in self.eval_roller_stats.items():
+            logger.logkv(k, v)
+
+        logger.logkv("train/total_num_steps", self.total_interact_count)
         cur_time = time.time()
         Δtime = cur_time - self.last_time
         Δic = self.total_interact_count - self.last_ic
@@ -109,8 +133,8 @@ class LogSaveHelper:
             logger.logkv("GpuMaxMemory", th.cuda.max_memory_allocated())
             th.cuda.reset_max_memory_allocated()
 
-        if self.comm.rank == 0:
-            print("RCALL_LOGDIR: ", os.environ["RCALL_LOGDIR"])
+        # if self.comm.rank == 0:
+        #     print("RCALL_LOGDIR: ", os.environ["RCALL_LOGDIR"])
         logger.dumpkvs()
         self.last_time = cur_time
         self.last_ic = self.total_interact_count

@@ -472,6 +472,7 @@ def configure(
     dir: "(str|None) Local directory to write to" = None,
     format_strs: "(str|None) list of formats" = None,
     comm: "(MPI communicator | None) average numerical stats over comm" = None,
+    suffix: "(str) suffix of the file to write to" = None,
 ):
     if dir is None:
         if os.getenv("OPENAI_LOGDIR"):
@@ -486,9 +487,9 @@ def configure(
     # choose log suffix based on world rank because otherwise the files will collide
     # if we split the world comm into different comms
     if MPI.COMM_WORLD.rank == 0:
-        log_suffix = ""
+        log_suffix = suffix 
     else:
-        log_suffix = "-rank%03i" % MPI.COMM_WORLD.rank
+        log_suffix = suffix + "-rank%03i" % MPI.COMM_WORLD.rank
 
     if comm is None:
         comm = MPI.COMM_WORLD

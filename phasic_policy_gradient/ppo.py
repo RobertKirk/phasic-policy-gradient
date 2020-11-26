@@ -138,6 +138,8 @@ def learn(
     comm: "(MPI.Comm) MPI communicator" = None,
     callbacks: "(seq of function(dict)->bool) to run each update" = (),
     learn_state: "dict with optional keys {'opts', 'roller', 'lsh', 'reward_normalizer', 'curr_interact_count', 'seg_buf'}" = None,
+    env_name: "(str) env name" = "coinrun",
+    seed: "(int) seed" = 0,
 ):
     if comm is None:
         comm = MPI.COMM_WORLD
@@ -207,9 +209,9 @@ def learn(
         keep_buf=100,
         keep_non_rolling=log_save_opts.get("log_new_eps", False),
     )
-
     lsh = learn_state.get("lsh") or LogSaveHelper(
-        ic_per_step=ic_per_step, model=model, comm=comm, **log_save_opts
+        ic_per_step=ic_per_step, model=model, comm=comm, 
+        env_name=env_name, seed=seed, **log_save_opts
     )
 
     callback_exit = False  # Does callback say to exit loop?

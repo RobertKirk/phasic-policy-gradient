@@ -82,6 +82,8 @@ def train_fn(env_name="coinrun",
         n_pi=n_pi,
         name2coef=name2coef,
         comm=comm,
+        env_name=env_name,
+        seed=seed,
     )
 
 def main():

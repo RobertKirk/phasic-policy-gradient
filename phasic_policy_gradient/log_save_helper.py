@@ -36,6 +36,8 @@ class LogSaveHelper:
         t0: "(float) override training start timestamp" = None,
         log_callbacks: "(list) extra callbacks to run before self.log()" = None,
         log_new_eps: "(bool) whether to log statistics for new episodes from non-rolling buffer" = False,
+        env_name: "(str) env name" = "coinrun",
+        seed: "(int) seed" = 0,
     ):
         self.model = model
         self.comm = comm or MPI.COMM_WORLD
@@ -47,6 +49,8 @@ class LogSaveHelper:
         self.log_idx = 0
         self.start_time = self.last_time = time.time()
         self.total_interact_count = 0
+        self.env_name = env_name 
+        self.seed = seed
         if ic_per_save > 0:
             self.save()
         self.start_time = self.last_time = t0 or time.time()
@@ -144,9 +148,9 @@ class LogSaveHelper:
         if self.comm.rank != 0:
             return
         if self.save_mode == "last":
-            basename = "model"
+            basename = "model-{}-s{}".format(self.env_name, self.seed)
         elif self.save_mode == "all":
-            basename = f"model{self.save_idx:03d}"
+            basename = "model-{}-s{}".format(self.env_name, self.seed) + f"{self.save_idx:03d}"
         elif self.save_mode == "none":
             return
         else:

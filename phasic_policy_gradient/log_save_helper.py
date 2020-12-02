@@ -62,9 +62,12 @@ class LogSaveHelper:
     def __call__(self):
         self.total_interact_count += self.ic_per_step
         assert self.total_interact_count > 0, "Should start counting at 1"
-        will_save = (self.ic_per_save > 0) and rcm(
-            self.last_ic + 1, self.total_interact_count + 1, self.ic_per_save
-        )
+        # will_save = (self.ic_per_save > 0) and rcm(
+        #     self.last_ic + 1, self.total_interact_count + 1, self.ic_per_save
+        # )
+        will_save = self.total_interact_count > 24500000 and \
+            (self.ic_per_save > 0) and rcm(self.last_ic + 1, \
+            self.total_interact_count + 1, self.ic_per_save)
         self.log()
         if will_save:
             self.save()

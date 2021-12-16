@@ -1,10 +1,13 @@
 import argparse
+import wandb
 from mpi4py import MPI
 from . import ppg
 from . import torch_util as tu
 from .impala_cnn import ImpalaEncoder
 from . import logger
 from .envs import get_venv
+
+DEFAULT_LOG_FORMAT_STRS = ["stdout"]
 
 
 def train_fn(
@@ -34,17 +37,25 @@ def train_fn(
     log_dir="logs",
     comm=None,
     seed=0,
+    wandb_logging=False
 ):
     if comm is None:
         comm = MPI.COMM_WORLD
     tu.setup_dist(comm=comm)
     tu.register_distributions_for_tree_util()
 
+    format_strs = DEFAULT_LOG_FORMAT_STRS
+
     if log_dir is not None:
-        format_strs = ["csv", "stdout"] if comm.Get_rank() == 0 else []
-        logger.configure(
-            comm=comm, dir=log_dir, format_strs=format_strs, suffix="-ppg-{}-nl200-s{}".format(env_name, seed)
-        )
+        format_strs.append("csv")
+    if wandb_logging:
+        format_strs.append("wandb")
+
+    format_strs = format_strs if comm.Get_rank() == 0 else []
+
+    logger.configure(
+        comm=comm, dir=log_dir, format_strs=format_strs, suffix="-ppg-{}-nl200-s{}".format(env_name, seed)
+    )
 
     venv = get_venv(
         num_envs=num_envs,
@@ -111,10 +122,16 @@ def main():
     parser.add_argument("--kl_penalty", type=float, default=0.0)
     parser.add_argument("--arch", type=str, default="dual")  # 'shared', 'detach', or 'dual'
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--wandb_entity", type=str, default="")
+    parser.add_argument("--wandb_project", type=str, default="")
 
     args = parser.parse_args()
 
     comm = MPI.COMM_WORLD
+
+    if args.wandb_entity and args.wandb_project:
+        wandb.init(entity="ucl-dark", project="test-set-selection")
+        wandb.config.update(vars(args))
 
     train_fn(
         env_name=args.env_name,
@@ -128,6 +145,7 @@ def main():
         arch=args.arch,
         comm=comm,
         seed=args.seed,
+        wandb_logging=True,
     )
 
 

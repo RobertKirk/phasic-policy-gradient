@@ -1,15 +1,17 @@
-import os
-import sys
-import shutil
-import os.path as osp
-import json
-import time
 import datetime
+import json
+import os
+import os.path as osp
+import shutil
+import sys
 import tempfile
+import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import partial, wraps
+
+import wandb
 from mpi4py import MPI
 
 
@@ -178,8 +180,8 @@ class TensorBoardOutputFormat(KVWriter):
         prefix = "events"
         path = osp.join(osp.abspath(dir), prefix)
         import tensorflow as tf
-        from tensorflow.python import pywrap_tensorflow
         from tensorflow.core.util import event_pb2
+        from tensorflow.python import pywrap_tensorflow
         from tensorflow.python.util import compat
 
         self.tf = tf
@@ -206,6 +208,24 @@ class TensorBoardOutputFormat(KVWriter):
             self.writer = None
 
 
+class WandbOutputFormat(KVWriter):
+    """
+    Dumps key/value pairs to WANDB.
+    """
+
+    def __init__(self):
+        self.step = 0
+
+    def writekvs(self, kvs):
+        self.step += 1
+        log_dict = {k: float(v) for k, v in kvs.items()}
+        log_dict["log_step"] = self.step
+        wandb.log(log_dict)
+
+    def close(self):
+        pass
+
+
 def make_output_format(format, ev_dir, log_suffix=""):
     os.makedirs(ev_dir, exist_ok=True)
     if format == "stdout":
@@ -218,6 +238,8 @@ def make_output_format(format, ev_dir, log_suffix=""):
         return CSVOutputFormat(osp.join(ev_dir, "progress%s.csv" % log_suffix))
     elif format == "tensorboard":
         return TensorBoardOutputFormat(osp.join(ev_dir, "tb%s" % log_suffix))
+    elif format == "wandb":
+        return WandbOutputFormat()
     else:
         raise ValueError("Unknown format specified: %s" % (format,))
 
@@ -346,7 +368,8 @@ def dump_kwargs(func):
     """
 
     def func_wrapper(*args, **kwargs):
-        import inspect, textwrap
+        import inspect
+        import textwrap
 
         sign = inspect.signature(func)
         for k, p in sign.parameters.items():
@@ -497,7 +520,7 @@ def is_configured():
 
 def default_format_strs(rank):
     if rank == 0:
-        return ["stdout", "log", "csv"]
+        return ["stdout", "log", "csv", "wandb"]
     else:
         return []
 
@@ -566,9 +589,10 @@ def read_tb(path):
     path : a tensorboard file OR a directory, where we will find all TB files
            of the form events.*
     """
-    import pandas
-    import numpy as np
     from glob import glob
+
+    import numpy as np
+    import pandas
     import tensorflow as tf
 
     if osp.isdir(path):

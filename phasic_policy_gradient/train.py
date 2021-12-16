@@ -113,6 +113,7 @@ def main():
     parser.add_argument("--env_name", type=str, default="coinrun")
     parser.add_argument("--start_level", type=int, default=0)
     parser.add_argument("--num_levels", type=int, default=200)
+    parser.add_argument("--distribution_mode", type=str, default="easy")
     parser.add_argument("--num_envs", type=int, default=64)
     parser.add_argument("--n_epoch_pi", type=int, default=1)
     parser.add_argument("--n_epoch_vf", type=int, default=1)
@@ -137,6 +138,7 @@ def main():
         env_name=args.env_name,
         start_level=args.start_level,
         num_levels=args.num_levels,
+        distribution_mode=args.distribution_mode,
         num_envs=args.num_envs,
         n_epoch_pi=args.n_epoch_pi,
         n_epoch_vf=args.n_epoch_vf,

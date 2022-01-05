@@ -134,6 +134,8 @@ class LogSaveHelper:
 
         logger.logkv("Misc/TimeElapsed", cur_time - self.start_time)
         logger.logkv("IPS_total", Δic / Δtime)
+        logger.logkv("sps", Δic / Δtime)
+        logger.logkv("num_steps", self.total_interact_count)
         logger.logkv("del_time", Δtime)
         logger.logkv("Iter", self.log_idx)
         logger.logkv("CpuMaxMemory", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1000)

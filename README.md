@@ -1,10 +1,11 @@
-**Status:** Archive (code is provided as-is, no updates expected)
-
 # Phasic Policy Gradient
 
 #### [[Paper]](https://arxiv.org/abs/2009.04416)
 
-This is code for training agents using [Phasic Policy Gradient](https://arxiv.org/abs/2009.04416) [(citation)](#citation).
+This is code for training agents using [Phasic Policy Gradient](https://arxiv.org/abs/2009.04416) [(citation)](#citation). It includes several adjustments to the [original repository](https://github.com/openai/phasic-policy-gradient), which were added by [Roberta Raileanu](https://rraileanu.github.io/) and [Robert Kirk](https://robertkirk.github.io/):
+* [Black](https://black.readthedocs.io/en/stable/) code formatting
+* Reporting evaluation performance during training
+* [W&B](https://wandb.ai/site) logging integration ([W&B](#W&B))
 
 Supported platforms:
 
@@ -24,6 +25,13 @@ git clone https://github.com/openai/phasic-policy-gradient.git
 conda env update --name phasic-policy-gradient --file phasic-policy-gradient/environment.yml
 conda activate phasic-policy-gradient
 pip install -e phasic-policy-gradient
+```
+
+## W&B
+
+[Weights & Biases](https://wandb.ai/site) is a tool for visualising and tracking ML projects. Assuming you have everything setup and install for W&B, all you need to do is specify the entity and project names with the command-line arguments. For example:
+```
+mpiexec -np 4 python -m phasic_policy_gradient.train --wandb_entity ucl-dark --wandb-project ppg
 ```
 
 ## Reproduce and Visualize Results

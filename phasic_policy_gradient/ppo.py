@@ -143,6 +143,7 @@ def learn(
     learn_state: "dict with optional keys {'opts', 'roller', 'lsh', 'reward_normalizer', 'curr_interact_count', 'seg_buf'}" = None,
     env_name: "(str) env name" = "coinrun",
     seed: "(int) seed" = 0,
+    log_interval: "(int) log interval" = 10,
 ):
     if comm is None:
         comm = MPI.COMM_WORLD
@@ -221,10 +222,6 @@ def learn(
 
     while curr_interact_count < interacts_total and not callback_exit:
         seg = roller.multi_step(nstep)
-        lsh.gather_roller_stats(roller)
-
-        eval_seg = eval_roller.multi_step(nstep)
-        lsh.gather_eval_roller_stats(eval_roller)
 
         if rnorm:
             seg["reward"] = reward_normalizer(seg["reward"], seg["first"])
@@ -259,6 +256,13 @@ def learn(
             )
             for (k, v) in epoch_stats[-1].items():
                 logger.logkv("Opt/" + k, v)
+
+        # Log on interval, or if it's the last update
+        if curr_iteration % log_interval == 0 or callback_exit:
+            lsh.gather_roller_stats(roller, log_key="train")
+
+            _ = eval_roller.multi_step(nstep)
+            lsh.gather_roller_stats(eval_roller, log_key="test")
 
         lsh()
 

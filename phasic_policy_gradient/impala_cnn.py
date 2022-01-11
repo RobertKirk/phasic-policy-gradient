@@ -6,7 +6,9 @@ from torch.nn import functional as F
 
 from . import torch_util as tu
 from gym3.types import Real, TensorType
+
 REAL = Real()
+
 
 class Encoder(nn.Module):
     """
@@ -49,6 +51,7 @@ class Encoder(nn.Module):
             state_out: array or dict
         """
         raise NotImplementedError
+
 
 class CnnBasicBlock(nn.Module):
     """
@@ -97,9 +100,7 @@ class CnnDownStack(nn.Module):
         self.pool = pool
         self.firstconv = tu.NormedConv2d(inchan, outchan, 3, padding=1)
         s = scale / math.sqrt(nblock)
-        self.blocks = nn.ModuleList(
-            [CnnBasicBlock(outchan, scale=s, **kwargs) for _ in range(nblock)]
-        )
+        self.blocks = nn.ModuleList([CnnBasicBlock(outchan, scale=s, **kwargs) for _ in range(nblock)])
 
     def forward(self, x):
         x = self.firstconv(x)
@@ -121,9 +122,7 @@ class CnnDownStack(nn.Module):
 class ImpalaCNN(nn.Module):
     name = "ImpalaCNN"  # put it here to preserve pickle compat
 
-    def __init__(
-        self, inshape, chans, outsize, scale_ob, nblock, final_relu=True, **kwargs
-    ):
+    def __init__(self, inshape, chans, outsize, scale_ob, nblock, final_relu=True, **kwargs):
         super().__init__()
         self.scale_ob = scale_ob
         h, w, c = inshape
@@ -131,9 +130,7 @@ class ImpalaCNN(nn.Module):
         s = 1 / math.sqrt(len(chans))  # per stack scale
         self.stacks = nn.ModuleList()
         for outchan in chans:
-            stack = CnnDownStack(
-                curshape[0], nblock=nblock, outchan=outchan, scale=s, **kwargs
-            )
+            stack = CnnDownStack(curshape[0], nblock=nblock, outchan=outchan, scale=s, **kwargs)
             self.stacks.append(stack)
             curshape = stack.output_shape(curshape)
         self.dense = tu.NormedLinear(tu.intprod(curshape), outsize, scale=1.4)
@@ -157,25 +154,12 @@ class ImpalaCNN(nn.Module):
 
 
 class ImpalaEncoder(Encoder):
-    def __init__(
-        self,
-        inshape,
-        outsize=256,
-        chans=(16, 32, 32),
-        scale_ob=255.0,
-        nblock=2,
-        **kwargs
-    ):
+    def __init__(self, inshape, outsize=256, chans=(16, 32, 32), scale_ob=255.0, nblock=2, **kwargs):
         codetype = TensorType(eltype=REAL, shape=(outsize,))
         obtype = TensorType(eltype=REAL, shape=inshape)
         super().__init__(codetype=codetype, obtype=obtype)
         self.cnn = ImpalaCNN(
-            inshape=inshape,
-            chans=chans,
-            scale_ob=scale_ob,
-            nblock=nblock,
-            outsize=outsize,
-            **kwargs
+            inshape=inshape, chans=chans, scale_ob=scale_ob, nblock=nblock, outsize=outsize, **kwargs
         )
 
     def forward(self, x, first, state_in):

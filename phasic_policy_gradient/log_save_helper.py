@@ -25,6 +25,7 @@ def rcm(start, stop, modulus, mode="[)"):
         (left_hit and mode[0] == "[") or (middle_hit) or (right_hit and mode[1] == "]")
     )
 
+
 class LogSaveHelper:
     def __init__(
         self,
@@ -49,7 +50,7 @@ class LogSaveHelper:
         self.log_idx = 0
         self.start_time = self.last_time = time.time()
         self.total_interact_count = 0
-        self.env_name = env_name 
+        self.env_name = env_name
         self.seed = seed
         if ic_per_save > 0:
             self.save()
@@ -65,9 +66,11 @@ class LogSaveHelper:
         # will_save = (self.ic_per_save > 0) and rcm(
         #     self.last_ic + 1, self.total_interact_count + 1, self.ic_per_save
         # )
-        will_save = self.total_interact_count > 24500000 and \
-            (self.ic_per_save > 0) and rcm(self.last_ic + 1, \
-            self.total_interact_count + 1, self.ic_per_save)
+        will_save = (
+            self.total_interact_count > 24500000
+            and (self.ic_per_save > 0)
+            and rcm(self.last_ic + 1, self.total_interact_count + 1, self.ic_per_save)
+        )
         self.log()
         if will_save:
             self.save()
@@ -133,9 +136,7 @@ class LogSaveHelper:
         logger.logkv("IPS_total", Δic / Δtime)
         logger.logkv("del_time", Δtime)
         logger.logkv("Iter", self.log_idx)
-        logger.logkv(
-            "CpuMaxMemory", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1000
-        )
+        logger.logkv("CpuMaxMemory", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1000)
         if th.cuda.is_available():
             logger.logkv("GpuMaxMemory", th.cuda.max_memory_allocated())
             th.cuda.reset_max_memory_allocated()

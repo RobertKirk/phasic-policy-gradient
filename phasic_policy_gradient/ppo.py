@@ -17,13 +17,14 @@ from . import logger
 
 INPUT_KEYS = {"ob", "ac", "first", "logp", "vtarg", "adv", "state_in"}
 
+
 def compute_gae(
     *,
     vpred: "(th.Tensor[1, float]) value predictions",
     reward: "(th.Tensor[1, float]) rewards",
     first: "(th.Tensor[1, bool]) mark beginning of episodes",
     γ: "(float)",
-    λ: "(float)"
+    λ: "(float)",
 ):
     orig_device = vpred.device
     assert orig_device == reward.device == first.device
@@ -43,13 +44,13 @@ def compute_gae(
     vtarg = vpred[:, :-1] + adv
     return adv.to(device=orig_device), vtarg.to(device=orig_device)
 
+
 def log_vf_stats(comm, **kwargs):
-    logger.logkv(
-        "VFStats/EV", tu.explained_variance(kwargs["vpred"], kwargs["vtarg"], comm)
-    )
+    logger.logkv("VFStats/EV", tu.explained_variance(kwargs["vpred"], kwargs["vtarg"], comm))
     for key in ["vpred", "vtarg", "adv"]:
         logger.logkv_mean(f"VFStats/{key.capitalize()}Mean", kwargs[key].mean())
         logger.logkv_mean(f"VFStats/{key.capitalize()}Std", kwargs[key].std())
+
 
 def compute_advantage(model, seg, γ, λ, comm=None):
     comm = comm or MPI.COMM_WORLD
@@ -68,6 +69,7 @@ def compute_advantage(model, seg, γ, λ, comm=None):
     seg["vtarg"] = vtarg
     adv_mean, adv_var = tu.mpi_moments(comm, adv)
     seg["adv"] = (adv - adv_mean) / (math.sqrt(adv_var) + 1e-8)
+
 
 def compute_losses(
     model,
@@ -112,6 +114,7 @@ def compute_losses(
 
     return losses, diags
 
+
 def learn(
     *,
     venv: "(VecEnv) vectorized train environment",
@@ -151,10 +154,7 @@ def learn(
         ["pi", "vf"] if (n_epoch_pi != n_epoch_vf) else ["pi"]
     )  # use separate optimizers when n_epoch_pi != n_epoch_vf
     params = list(model.parameters())
-    opts = learn_state.get("opts") or {
-        k: th.optim.Adam(params, lr=lr)
-        for k in opt_keys
-    }
+    opts = learn_state.get("opts") or {k: th.optim.Adam(params, lr=lr) for k in opt_keys}
 
     tu.sync_params(params)
 
@@ -210,8 +210,7 @@ def learn(
         keep_non_rolling=log_save_opts.get("log_new_eps", False),
     )
     lsh = learn_state.get("lsh") or LogSaveHelper(
-        ic_per_step=ic_per_step, model=model, comm=comm, 
-        env_name=env_name, seed=seed, **log_save_opts
+        ic_per_step=ic_per_step, model=model, comm=comm, env_name=env_name, seed=seed, **log_save_opts
     )
 
     callback_exit = False  # Does callback say to exit loop?

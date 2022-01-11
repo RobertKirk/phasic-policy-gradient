@@ -21,6 +21,7 @@ import time
 import random
 import multiprocessing as mp
 
+
 def format_model(mod, rms=False):
     """
     Return a str: a formatted table listing parameters and their sizes
@@ -49,9 +50,8 @@ def format_model(mod, rms=False):
     rows.sort(key=lambda x: x[0])
     df = pandas.DataFrame(rows, columns=columns)
     maxlen = df["path"].str.len().max()
-    return df.to_string(
-        index=False, formatters={"path": "{{:<{}s}}".format(maxlen).format}
-    )
+    return df.to_string(index=False, formatters={"path": "{{:<{}s}}".format(maxlen).format})
+
 
 def intprod(xs):
     """
@@ -61,6 +61,7 @@ def intprod(xs):
     for x in xs:
         out *= x
     return out
+
 
 def transpose(x, before, after):
     """
@@ -80,6 +81,7 @@ def allsame(xs):
     assert len(xs) > 0
     return all(x == xs[0] for x in xs[1:])
 
+
 def batch_len(batch):
     """
     Given nested dict of arrays with same batchsize, return this batchsize
@@ -93,8 +95,10 @@ def batch_len(batch):
     ), "Not all arrays have same batchsize!"
     return b
 
+
 def param_count(model):
     return sum(p.numel() for p in model.parameters())
+
 
 def _rms(x):
     return ((x ** 2).mean() ** 0.5).item()
@@ -113,9 +117,7 @@ def contextmanager_to_decorator(cm):
 
 
 def have_cuda():
-    return (
-        th.has_cuda and th.cuda.is_available() and not os.getenv("RCALL_NUM_GPU") == "0"
-    )
+    return th.has_cuda and th.cuda.is_available() and not os.getenv("RCALL_NUM_GPU") == "0"
 
 
 def default_device_type():
@@ -202,6 +204,7 @@ def torch_init_process_group(
     else:
         raise RuntimeError("Failed to init on any port")
 
+
 def _get_local_rank_size(comm):
     """
     Returns the rank of each process on its machine
@@ -220,6 +223,7 @@ def _get_local_rank_size(comm):
         node2rankssofar[node] += 1
     assert local_rank is not None
     return local_rank, node2rankssofar[this_node]
+
 
 def torch_setup(device_type=None, gpu_offset=0):
     """
@@ -267,10 +271,7 @@ def setup_dist(
         device_type = default_device_type()
     if comm is None:
         comm = MPI.COMM_WORLD
-    if (
-        os.environ.get("PYTEST_RUNNING", "0") == "1"
-        and os.environ.get("MPI_CALL_RUNNING", "0") != "1"
-    ):
+    if os.environ.get("PYTEST_RUNNING", "0") == "1" and os.environ.get("MPI_CALL_RUNNING", "0") != "1":
         # ideally we would have pytest-xdist never reuse a test worker
         # this is almost doable in pytest-xdist, but it's not obvious how to make it work
         # https://github.com/pytest-dev/pytest-xdist/issues/363
@@ -285,11 +286,10 @@ def setup_dist(
     if should_init_process_group:
         backend = backend or ("nccl" if device_type == "cuda" else "gloo")
         if device_type == "cpu":
-            assert (
-                backend != "nccl"
-            ), "nccl backend will not work with device_type='cpu'"
+            assert backend != "nccl", "nccl backend will not work with device_type='cpu'"
         DEFAULT_COMM = comm
         torch_init_process_group(backend=backend, start_port=start_port, comm=comm)
+
 
 def dev():
     return DEFAULT_DEVICE
@@ -340,6 +340,7 @@ def NormedLinear(*args, scale=1.0, dtype=th.float32, **kwargs):
         out.bias.data *= 0
     return out
 
+
 def NormedConv2d(*args, scale=1, **kwargs):
     """
     nn.Conv2d but with normalized fan-in init
@@ -349,6 +350,7 @@ def NormedConv2d(*args, scale=1, **kwargs):
     if kwargs.get("bias", True):
         out.bias.data *= 0
     return out
+
 
 def flatten_image(x):
     """
@@ -362,6 +364,7 @@ def sequential(layers, x, *args, diag_name=None):
     for (i, layer) in enumerate(layers):
         x = layer(x, *args)
     return x
+
 
 def all_mean_(x, group=dist.group.WORLD):
     dist_all_reduce(x, group=group)
@@ -401,6 +404,7 @@ def unflatten_to(newflat, xs):
         start = end
     assert start == newflat.numel()
 
+
 def is_distributed():
     return dist.is_initialized()
 
@@ -439,9 +443,8 @@ def sync_params(params, src_rank=0, group=dist.group.WORLD, comm=None, use_mpi=F
         dist_broadcast(flatvec, src=src_rank, group=group)
     unflatten_to(flatvec, datas)
 
-def sync_grads(
-    params, group=dist.group.WORLD, grad_weight=1.0, dtype=None, sync_buffer=None
-):
+
+def sync_grads(params, group=dist.group.WORLD, grad_weight=1.0, dtype=None, sync_buffer=None):
     """
     Sync gradients for the provided params across all members of the specified group
     """
@@ -456,6 +459,7 @@ def sync_grads(
         flatgrad.mul_(grad_weight)
     all_mean_(flatgrad, group=group)
     unflatten_to(flatgrad, grads)
+
 
 def _numpy_allmean(comm, x):
     out = np.zeros_like(x)
@@ -476,11 +480,11 @@ def explained_variance(ypred: th.Tensor, y: th.Tensor, comm: MPI.Comm = None) ->
     """
     Computes fraction of variance that ypred explains about y.
     Returns 1 - Var[y-ypred] / Var[y]
- 
+
     interpretation:
         ev=0  =>  might as well have predicted zero
         ev=1  =>  perfect prediction
-        ev<0  =>  worse than just predicting zero    
+        ev<0  =>  worse than just predicting zero
     """
     assert ypred.shape == y.shape
     err = y - ypred
@@ -495,6 +499,7 @@ def explained_variance(ypred: th.Tensor, y: th.Tensor, comm: MPI.Comm = None) ->
     else:
         return 1.0 - var_err / var_y
 
+
 @functools.lru_cache()  # Just run once
 def register_distributions_for_tree_util():
     tree_util.register_pytree_node(
@@ -508,11 +513,13 @@ def register_distributions_for_tree_util():
         lambda _keys, xs: dis.Bernoulli(logits=xs[0]),
     )
 
+
 @functools.lru_cache()
 def warn_no_gradient(model, task):
     for n, p in model.named_parameters():
         if p.grad is None:
             print(f"parameter '{n}' {p.shape} has no gradient for '{task}'")
+
 
 def parse_dtype(x):
     if isinstance(x, th.dtype):
@@ -541,6 +548,7 @@ def parse_dtype(x):
     else:
         raise TypeError(f"cannot parse {type(x)} as dtype")
 
+
 @no_grad
 def minibatched_call(fn, mbsize, *args, **kwargs):
     """
@@ -550,8 +558,7 @@ def minibatched_call(fn, mbsize, *args, **kwargs):
     tensor_list, _ = tree_util.tree_flatten((args, kwargs))
     batchsize = tensor_list[0].shape[0]
     mbs = [
-        fn(*tree_slice(args, inds), **tree_slice(kwargs, inds))
-        for inds in th.arange(batchsize).split(mbsize)
+        fn(*tree_slice(args, inds), **tree_slice(kwargs, inds)) for inds in th.arange(batchsize).split(mbsize)
     ]
     return tree_cat(mbs, dim=0)
 
@@ -570,6 +577,7 @@ def tree_slice(tree, sli):
 
 def sum_nonbatch(x, nbatchdim=2):
     return x.sum(dim=tuple(range(nbatchdim, x.dim()))) if x.dim() > nbatchdim else x
+
 
 def _process_modelpath(path, stage_index):
     # if we have a pipelined model, the user should specify a path with stage-0 in the filename

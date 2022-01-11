@@ -9,7 +9,7 @@ Episode = namedtuple("Episode", ["ret", "len", "time", "info"])
 
 class PostActProcessing(gym3.Wrapper):
     """
-    Call process() after each action, except possibly possibly the last 
+    Call process() after each action, except possibly possibly the last
     one which you never called observe for.
     """
 

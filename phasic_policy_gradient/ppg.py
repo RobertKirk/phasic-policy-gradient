@@ -10,6 +10,7 @@ from mpi4py import MPI
 from .tree_util import tree_map, tree_reduce
 import operator
 
+
 def sum_nonbatch(logprob_tree):
     """
     sums over nonbatch dimensions and over all leaves of the tree
@@ -45,6 +46,7 @@ class PpoModel(th.nn.Module):
             state_in=state_in,
         )
         return vpred[:, 0]
+
 
 class PhasicModel(PpoModel):
     def forward(self, ob, first, state_in) -> "pd, vpred, aux, state_out":
@@ -160,6 +162,7 @@ class PhasicValueModel(PhasicModel):
     def aux_keys(self):
         return ["vtarg"]
 
+
 def make_minibatches(segs, mbsize):
     """
     Yield one epoch of minibatch over the dataset described by segs
@@ -170,9 +173,7 @@ def make_minibatches(segs, mbsize):
     envs_segs = th.tensor(list(itertools.product(range(nenv), range(nseg))))
     for perminds in th.randperm(len(envs_segs)).split(mbsize):
         esinds = envs_segs[perminds]
-        yield tu.tree_stack(
-            [tu.tree_slice(segs[segind], envind) for (envind, segind) in esinds]
-        )
+        yield tu.tree_stack([tu.tree_slice(segs[segind], envind) for (envind, segind) in esinds])
 
 
 def aux_train(*, model, segs, opt, mbsize, name2coef):
@@ -201,9 +202,7 @@ def aux_train(*, model, segs, opt, mbsize, name2coef):
         opt.step()
 
 
-def compute_presleep_outputs(
-    *, model, segs, mbsize, pdkey="oldpd", vpredkey="oldvpred"
-):
+def compute_presleep_outputs(*, model, segs, mbsize, pdkey="oldpd", vpredkey="oldvpred"):
     def forward(ob, first, state_in):
         pd, vpred, _aux, _state_out = model.forward(ob.to(tu.dev()), first, state_in)
         return pd, vpred
@@ -218,7 +217,7 @@ def learn(
     *,
     model,
     venv,
-    eval_venv, 
+    eval_venv,
     ppo_hps,
     aux_lr,
     aux_mbsize,
@@ -261,7 +260,7 @@ def learn(
             seed=seed,
             **ppo_hps,
         )
-        
+
         if ppo_state["curr_interact_count"] >= interacts_total:
             break
 

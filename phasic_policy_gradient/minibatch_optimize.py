@@ -3,6 +3,7 @@ from . import logger
 from .tree_util import tree_map
 from . import torch_util as tu
 
+
 def _fmt_row(width, row, header=False):
     out = " | ".join(_fmt_item(x, width) for x in row)
     if header:
@@ -39,6 +40,7 @@ class LossDictPrinter:
             self.printed_header = True
         logger.log(_fmt_row(12, d.values()))
 
+
 def minibatch_optimize(
     train_fn: "function (dict) -> dict called on each minibatch that returns training stats",
     tensordict: "Dict[str->th.Tensor]",
@@ -56,9 +58,7 @@ def minibatch_optimize(
     ldp = LossDictPrinter()
     epoch_dicts = []
     for _ in range(nepoch):
-        mb_dicts = [
-            train_fn(**mb) for mb in minibatch_gen(tensordict, nminibatch=nminibatch)
-        ]
+        mb_dicts = [train_fn(**mb) for mb in minibatch_gen(tensordict, nminibatch=nminibatch)]
         local_dict = {k: float(v) for (k, v) in dict_mean(mb_dicts).items()}
         if epoch_fn is not None:
             local_dict.update(dict_mean(epoch_fn()))

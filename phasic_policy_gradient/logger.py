@@ -19,10 +19,7 @@ def mpi_weighted_mean(comm, local_name2valcount):
     Input: local_name2valcount: dict mapping key -> (value, count)
     Returns: key -> mean
     """
-    local_name2valcount = {
-        name: (float(val), count)
-        for (name, (val, count)) in local_name2valcount.items()
-    }
+    local_name2valcount = {name: (float(val), count) for (name, (val, count)) in local_name2valcount.items()}
     all_name2valcount = comm.gather(local_name2valcount)
     if comm.rank == 0:
         name2sum = defaultdict(float)
@@ -62,9 +59,7 @@ class HumanOutputFormat(KVWriter, SeqWriter):
             self.file = open(filename_or_file, "wt")
             self.own_file = True
         else:
-            assert hasattr(filename_or_file, "read"), (
-                "expected file or str, got %s" % filename_or_file
-            )
+            assert hasattr(filename_or_file, "read"), "expected file or str, got %s" % filename_or_file
             self.file = filename_or_file
             self.own_file = False
 
@@ -91,8 +86,7 @@ class HumanOutputFormat(KVWriter, SeqWriter):
         lines = [dashes]
         for (key, val) in sorted(key2str, key=lambda kv: kv[0].lower()):
             lines.append(
-                "| %s%s | %s%s |"
-                % (key, " " * (keywidth - len(key)), val, " " * (valwidth - len(val)))
+                "| %s%s | %s%s |" % (key, " " * (keywidth - len(key)), val, " " * (valwidth - len(val)))
             )
         lines.append(dashes)
         self.file.write("\n".join(lines) + "\n")
@@ -200,9 +194,7 @@ class TensorBoardOutputFormat(KVWriter):
 
         summary = self.tf.Summary(value=[summary_val(k, v) for k, v in kvs.items()])
         event = self.event_pb2.Event(wall_time=time.time(), summary=summary)
-        event.step = (
-            self.step
-        )  # is there any reason why you'd want to specify the step?
+        event.step = self.step  # is there any reason why you'd want to specify the step?
         self.writer.WriteEvent(event)
 
         self.writer.Flush()
@@ -430,10 +422,7 @@ class Logger(object):
         else:
             d = mpi_weighted_mean(
                 self.comm,
-                {
-                    name: (val, self.name2cnt.get(name, 1))
-                    for (name, val) in self.name2val.items()
-                },
+                {name: (val, self.name2cnt.get(name, 1)) for (name, val) in self.name2val.items()},
             )
             if self.comm.rank != 0:
                 d["dummy"] = 1  # so we don't get a warning about empty dict
@@ -487,7 +476,7 @@ def configure(
     # choose log suffix based on world rank because otherwise the files will collide
     # if we split the world comm into different comms
     if MPI.COMM_WORLD.rank == 0:
-        log_suffix = suffix 
+        log_suffix = suffix
     else:
         log_suffix = suffix + "-rank%03i" % MPI.COMM_WORLD.rank
 
@@ -587,9 +576,7 @@ def read_tb(path):
     elif osp.basename(path).startswith("events."):
         fnames = [path]
     else:
-        raise NotImplementedError(
-            "Expected tensorboard file or directory containing them. Got %s" % path
-        )
+        raise NotImplementedError("Expected tensorboard file or directory containing them. Got %s" % path)
     tag2pairs = defaultdict(list)
     maxstep = 0
     for fname in fnames:
